@@ -15,10 +15,6 @@
 				<string>SCRIPT-FILTER</string>
 				<key>modifiers</key>
 				<integer>0</integer>
-				<key>modifiersubtext</key>
-				<string></string>
-				<key>vitoclose</key>
-				<false/>
 			</dict>
 		</array>
 		<key>SCRIPT-FILTER</key>
@@ -28,17 +24,13 @@
 				<string>COPY-RESULT</string>
 				<key>modifiers</key>
 				<integer>0</integer>
-				<key>modifiersubtext</key>
-				<string></string>
-				<key>vitoclose</key>
-				<false/>
 			</dict>
 		</array>
 	</dict>
 	<key>createdby</key>
 	<string>Nando Rossi</string>
 	<key>description</key>
-	<string>Get Czech National Bank exchange rates for invoices</string>
+	<string>Get Czech National Bank exchange rates</string>
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
@@ -52,10 +44,8 @@
 				<integer>1</integer>
 				<key>keyword</key>
 				<string>toczk</string>
-				<key>subtext</key>
-				<string></string>
 				<key>text</key>
-				<string>Get CZK exchange rate</string>
+				<string>Get CZK rate</string>
 				<key>withspace</key>
 				<true/>
 			</dict>
@@ -71,8 +61,6 @@
 			<dict>
 				<key>alfredversion</key>
 				<string>5.0</string>
-				<key>escaping</key>
-				<integer>102</integer>
 				<keyword>term</keyword>
 				<string>{query}</string>
 				<key>scriptargtype</key>
@@ -96,10 +84,6 @@
 				<false/>
 				<key>clipboardtext</key>
 				<string>{query}</string>
-				<key>ignoredynamicplaceholders</key>
-				<false/>
-				<key>transient</key>
-				<false/>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.output.clipboard</string>
