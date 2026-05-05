@@ -188,6 +188,7 @@ def main():
                       help="List all available currencies with rates")
     parser.add_argument("--alfred", action="store_true",
                       help="Output JSON for Alfred Script Filter")
+    parser.add_argument("--alfred-query", help="Raw query passed by Alfred")
 
     args = parser.parse_args()
 
@@ -198,24 +199,10 @@ def main():
             print(json.dumps({"items": [{"title": "Error fetching rates", "valid": "no"}]}))
             return
 
+        mode, amount, currency = parse_alfred_query(args.alfred_query)
         items = []
-        # If -c flag used with a currency, show just that one; otherwise show all
-        if args.currency:
-            rate = find_currency(rates, args.currency)
-            if not rate:
-                available = ", ".join(c for c, _ in rates)
-                print(json.dumps({"items": [{"title": f"Currency {args.currency} not found", "subtitle": f"Available: {available}", "valid": "no"}]}))
-                return
-            items.append({
-                "title": f"1 {args.currency.upper()} = {rate} CZK",
-                "subtitle": f"Rate: {rate} CZK",
-                "arg": rate,
-                "copy": rate,
-                "valid": "yes",
-                "uid": args.currency.upper()
-            })
-        else:
-            # No currency specified - show all
+
+        if mode == "list":
             for code, rate in sorted(rates):
                 items.append({
                     "title": f"1 {code} = {rate} CZK",
@@ -225,6 +212,49 @@ def main():
                     "valid": "yes",
                     "uid": code
                 })
+        elif mode == "rate":
+            rate = find_currency(rates, currency or "")
+            if not rate:
+                available = ", ".join(c for c, _ in rates)
+                alfred_error(f"Currency {currency} not found", f"Available: {available}")
+                return
+            code = (currency or "").upper()
+            items.append({
+                "title": f"1 {code} = {rate} CZK",
+                "subtitle": f"Rate: {rate} CZK",
+                "arg": rate,
+                "copy": rate,
+                "valid": "yes",
+                "uid": code
+            })
+        elif mode == "convert":
+            rate = find_currency(rates, currency or "")
+            if not rate:
+                available = ", ".join(c for c, _ in rates)
+                alfred_error(f"Currency {currency} not found", f"Available: {available}")
+                return
+            code = (currency or "").upper()
+            unit = get_amount(rates, code)
+            converted = (amount or 0) * float(rate) / unit
+            converted_text = f"{converted:.2f}"
+            amount_text = format_amount(amount or 0)
+            items.append({
+                "title": f"{amount_text} {code} = {converted_text} CZK",
+                "subtitle": f"Rate: {unit} {code} = {rate} CZK",
+                "arg": converted_text,
+                "copy": converted_text,
+                "valid": "yes",
+                "uid": f"{amount_text}-{code}"
+            })
+        elif mode == "missing_currency":
+            alfred_error("Enter amount and currency, e.g. 50 EUR")
+            return
+        elif mode == "too_many":
+            alfred_error("Too many arguments", "Use e.g. 50 EUR")
+            return
+        else:
+            alfred_error("Invalid input", "Use a currency code or amount and currency")
+            return
 
         print(json.dumps({"items": items}))
         return
