@@ -10,6 +10,7 @@ import urllib.request
 import urllib.parse
 import urllib.error
 import json
+import math
 from datetime import datetime
 from typing import Optional
 import subprocess
@@ -131,14 +132,16 @@ def print_list(rates: list[tuple[str, str]]):
 def parse_amount(text: str) -> Optional[float]:
     """Parse an amount with dot or comma decimal separator."""
     try:
-        return float(text.replace(",", "."))
+        amount = float(text.replace(",", "."))
     except ValueError:
         return None
+    return amount if math.isfinite(amount) else None
 
 
 def format_amount(amount: float) -> str:
     """Format user-entered amounts without unnecessary trailing zeroes."""
-    return f"{amount:.2f}".rstrip("0").rstrip(".")
+    text = str(amount)
+    return text[:-2] if text.endswith(".0") else text
 
 
 def alfred_error(title: str, subtitle: str = "") -> None:
