@@ -1,6 +1,6 @@
 # Czech Invoice Helper
 
-Fetch Czech National Bank (CNB) exchange rates for creating Czech invoices in EUR.
+Fetch daily exchange rates from the Czech National Bank (ČNB). You're a freelancer in Czechia and get paid in EUR (or USD, GBP…)? You file in CZK, so you need the official ČNB exchange rate for that date. This script fetches the daily rate from ČNB — handy to include on your invoice for reference.
 
 ## Requirements
 
