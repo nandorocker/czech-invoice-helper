@@ -38,7 +38,7 @@
 				<key>argumenttype</key>
 				<integer>1</integer>
 				<key>escaping</key>
-				<integer>0</integer>
+				<integer>102</integer>
 				<key>keyword</key>
 				<string>toczk</string>
 				<key>queuedelaycustom</key>
@@ -52,9 +52,9 @@
 				<key>runningsubtext</key>
 				<string>Fetching rates...</string>
 				<key>script</key>
-				<string>bash "./czk.sh" "{query}"</string>
+				<string>bash "./czk.sh" "$@"</string>
 				<key>scriptargtype</key>
-				<integer>0</integer>
+				<integer>1</integer>
 				<key>scriptfile</key>
 				<string></string>
 				<key>subtext</key>
