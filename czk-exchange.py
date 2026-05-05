@@ -128,6 +128,45 @@ def print_list(rates: list[tuple[str, str]]):
         print(f"{code} {rate}")
 
 
+def parse_amount(text: str) -> Optional[float]:
+    """Parse an amount with dot or comma decimal separator."""
+    try:
+        return float(text.replace(",", "."))
+    except ValueError:
+        return None
+
+
+def format_amount(amount: float) -> str:
+    """Format user-entered amounts without unnecessary trailing zeroes."""
+    return f"{amount:.2f}".rstrip("0").rstrip(".")
+
+
+def alfred_error(title: str, subtitle: str = "") -> None:
+    """Print a non-selectable Alfred error item."""
+    item = {"title": title, "valid": "no"}
+    if subtitle:
+        item["subtitle"] = subtitle
+    print(json.dumps({"items": [item]}))
+
+
+def parse_alfred_query(query: Optional[str]) -> tuple[str, Optional[float], Optional[str]]:
+    """Return (mode, amount, currency) for an Alfred query."""
+    tokens = (query or "").strip().split()
+    if not tokens:
+        return "list", None, None
+    if len(tokens) == 1:
+        amount = parse_amount(tokens[0])
+        if amount is not None:
+            return "missing_currency", amount, None
+        return "rate", None, tokens[0]
+    if len(tokens) == 2:
+        amount = parse_amount(tokens[0])
+        if amount is None:
+            return "invalid", None, None
+        return "convert", amount, tokens[1]
+    return "too_many", None, None
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Fetch Czech National Bank exchange rates.",
