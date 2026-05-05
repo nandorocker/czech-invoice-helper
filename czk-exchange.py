@@ -9,6 +9,7 @@ import sys
 import urllib.request
 import urllib.parse
 import urllib.error
+import json
 from datetime import datetime
 from typing import Optional
 import subprocess
@@ -51,8 +52,24 @@ def get_date_str(date_input: Optional[str]) -> str:
     try:
         return datetime.strptime(date_input, "%d.%m.%Y").strftime("%d.%m.%Y")
     except ValueError:
+        pass
+    try:
+        return datetime.strptime(date_input, "%d.%m.%y").strftime("%d.%m.%Y")
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(date_input, "%m.%d.%y").strftime("%d.%m.%Y")
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(date_input, "%m.%d.%Y").strftime("%d.%m.%Y")
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(date_input, "%Y-%m-%d").strftime("%d.%m.%Y")
+    except ValueError:
         print(f"Invalid date format '{date_input}'. Using today's date.")
-        return datetime.today().strftime("%d.%m.%Y")
+    return datetime.today().strftime("%d.%m.%Y")
 
 
 def fetch_exchange_rates(date_str: str) -> Optional[list[tuple[str, str]]]:
@@ -127,8 +144,51 @@ def main():
                       help="Output number only, no clipboard")
     parser.add_argument("--list", action="store_true",
                       help="List all available currencies with rates")
+    parser.add_argument("--alfred", action="store_true",
+                      help="Output JSON for Alfred Script Filter")
 
     args = parser.parse_args()
+
+    if args.alfred:
+        date_str = get_date_str(args.date)
+        rates = fetch_exchange_rates(date_str)
+        if not rates:
+            print(json.dumps({"items": [{"title": "Error fetching rates", "valid": "no"}]}))
+            return
+
+        items = []
+        if args.list:
+            for code, rate in sorted(rates):
+                items.append({
+                    "title": f"1 {code} = {rate} CZK",
+                    "subtitle": f"Rate: {rate} CZK",
+                    "arg": rate,
+                    "copy": rate,
+                    "valid": "yes",
+                    "uid": code
+                })
+        else:
+            currency = args.currency or ""
+            if not currency:
+                print(json.dumps({"items": [{"title": "Specify currency", "valid": "no"}]}))
+                return
+            rate = find_currency(rates, currency)
+            if not rate:
+                available = ", ".join(c for c, _ in rates)
+                print(json.dumps({"items": [{"title": f"Currency {currency} not found", "subtitle": f"Available: {available}", "valid": "no"}]}))
+                return
+            amount = get_amount(rates, currency)
+            items.append({
+                "title": f"1 {currency.upper()} = {rate} CZK",
+                "subtitle": f"Rate: {rate} CZK",
+                "arg": rate,
+                "copy": rate,
+                "valid": "yes",
+                "uid": currency.upper()
+            })
+
+        print(json.dumps({"items": items}))
+        return
 
     if args.list:
         date_str = get_date_str(args.date)
