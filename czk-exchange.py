@@ -157,7 +157,23 @@ def main():
             return
 
         items = []
-        if args.list:
+        # If -c flag used with a currency, show just that one; otherwise show all
+        if args.currency:
+            rate = find_currency(rates, args.currency)
+            if not rate:
+                available = ", ".join(c for c, _ in rates)
+                print(json.dumps({"items": [{"title": f"Currency {args.currency} not found", "subtitle": f"Available: {available}", "valid": "no"}]}))
+                return
+            items.append({
+                "title": f"1 {args.currency.upper()} = {rate} CZK",
+                "subtitle": f"Rate: {rate} CZK",
+                "arg": rate,
+                "copy": rate,
+                "valid": "yes",
+                "uid": args.currency.upper()
+            })
+        else:
+            # No currency specified - show all
             for code, rate in sorted(rates):
                 items.append({
                     "title": f"1 {code} = {rate} CZK",
@@ -167,25 +183,6 @@ def main():
                     "valid": "yes",
                     "uid": code
                 })
-        else:
-            currency = args.currency or ""
-            if not currency:
-                print(json.dumps({"items": [{"title": "Specify currency", "valid": "no"}]}))
-                return
-            rate = find_currency(rates, currency)
-            if not rate:
-                available = ", ".join(c for c, _ in rates)
-                print(json.dumps({"items": [{"title": f"Currency {currency} not found", "subtitle": f"Available: {available}", "valid": "no"}]}))
-                return
-            amount = get_amount(rates, currency)
-            items.append({
-                "title": f"1 {currency.upper()} = {rate} CZK",
-                "subtitle": f"Rate: {rate} CZK",
-                "arg": rate,
-                "copy": rate,
-                "valid": "yes",
-                "uid": currency.upper()
-            })
 
         print(json.dumps({"items": items}))
         return
