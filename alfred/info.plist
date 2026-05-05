@@ -15,6 +15,10 @@
 				<string>SCRIPT-FILTER</string>
 				<key>modifiers</key>
 				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
 			</dict>
 		</array>
 		<key>SCRIPT-FILTER</key>
@@ -24,13 +28,17 @@
 				<string>COPY-RESULT</string>
 				<key>modifiers</key>
 				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
 			</dict>
 		</array>
 	</dict>
 	<key>createdby</key>
 	<string>Nando Rossi</string>
 	<key>description</key>
-	<string>Get Czech National Bank exchange rates</string>
+	<string>Get Czech National Bank exchange rates for invoices</string>
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
@@ -44,8 +52,10 @@
 				<integer>1</integer>
 				<key>keyword</key>
 				<string>toczk</string>
+				<key>subtext</key>
+				<string></string>
 				<key>text</key>
-				<string>Get CZK rate</string>
+				<string>Get CZK exchange rate</string>
 				<key>withspace</key>
 				<true/>
 			</dict>
@@ -59,23 +69,43 @@
 		<dict>
 			<key>config</key>
 			<dict>
-				<key>alfredversion</key>
-				<string>5.0</string>
-				<keyword>term</keyword>
-				<string>{query}</string>
-				<key>scriptargtype</key>
+				<key>argumenttype</key>
 				<integer>1</integer>
-				<key>scriptfilename</key>
-				<string>czk.sh</string>
-				<key>scripttypename</key>
-				<string>bash</string>
+				<key>escaping</key>
+				<integer>0</integer>
+				<key>keyword</key>
+				<string>toczk</string>
+				<key>queuedelaycustom</key>
+				<integer>1</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<false/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
+				<key>runningsubtext</key>
+				<string>Fetching rates...</string>
+				<key>script</key>
+				<string>bash "./czk.sh" "{query}"</string>
+				<key>scriptargtype</key>
+				<integer>0</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>Enter currency code (e.g., EUR, USD)</string>
+				<key>title</key>
+				<string>Get CZK exchange rate</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.input.scriptfilter</string>
 			<key>uid</key>
 			<string>SCRIPT-FILTER</string>
 			<key>version</key>
-			<integer>5</integer>
+			<integer>2</integer>
 		</dict>
 		<dict>
 			<key>config</key>
@@ -84,6 +114,10 @@
 				<false/>
 				<key>clipboardtext</key>
 				<string>{query}</string>
+				<key>ignoredynamicplaceholders</key>
+				<false/>
+				<key>transient</key>
+				<false/>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.output.clipboard</string>
