@@ -8,19 +8,6 @@
 	<string>Productivity</string>
 	<key>connections</key>
 	<dict>
-		<key>CZK-KEYWORD</key>
-		<array>
-			<dict>
-				<key>destinationuid</key>
-				<string>SCRIPT-FILTER</string>
-				<key>modifiers</key>
-				<integer>0</integer>
-				<key>modifiersubtext</key>
-				<string></string>
-				<key>vitoclose</key>
-				<false/>
-			</dict>
-		</array>
 		<key>SCRIPT-FILTER</key>
 		<array>
 			<dict>
@@ -45,27 +32,6 @@
 	<string>CZK Exchange</string>
 	<key>objects</key>
 	<array>
-		<dict>
-			<key>config</key>
-			<dict>
-				<key>argumenttype</key>
-				<integer>1</integer>
-				<key>keyword</key>
-				<string>toczk</string>
-				<key>subtext</key>
-				<string></string>
-				<key>text</key>
-				<string>Get CZK exchange rate</string>
-				<key>withspace</key>
-				<true/>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.input.keyword</string>
-			<key>uid</key>
-			<string>CZK-KEYWORD</string>
-			<key>version</key>
-			<integer>1</integer>
-		</dict>
 		<dict>
 			<key>config</key>
 			<dict>
@@ -131,13 +97,6 @@
 	<string></string>
 	<key>uidata</key>
 	<dict>
-		<key>CZK-KEYWORD</key>
-		<dict>
-			<key>xpos</key>
-			<real>30</real>
-			<key>ypos</key>
-			<real>150</real>
-		</dict>
 		<key>SCRIPT-FILTER</key>
 		<dict>
 			<key>xpos</key>
