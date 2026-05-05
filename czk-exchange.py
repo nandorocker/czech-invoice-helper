@@ -146,7 +146,7 @@ def format_amount(amount: float) -> str:
 
 def alfred_error(title: str, subtitle: str = "") -> None:
     """Print a non-selectable Alfred error item."""
-    item = {"title": title, "valid": "no"}
+    item = {"title": title, "valid": False}
     if subtitle:
         item["subtitle"] = subtitle
     print(json.dumps({"items": [item]}))
@@ -196,7 +196,7 @@ def main():
         date_str = get_date_str(args.date)
         rates = fetch_exchange_rates(date_str)
         if not rates:
-            print(json.dumps({"items": [{"title": "Error fetching rates", "valid": "no"}]}))
+            print(json.dumps({"items": [{"title": "Error fetching rates", "valid": False}]}))
             return
 
         mode, amount, currency = parse_alfred_query(args.alfred_query)
@@ -208,8 +208,7 @@ def main():
                     "title": f"1 {code} = {rate} CZK",
                     "subtitle": f"Rate: {rate} CZK",
                     "arg": rate,
-                    "copy": rate,
-                    "valid": "yes",
+                    "valid": True,
                     "uid": code
                 })
         elif mode == "rate":
@@ -223,8 +222,7 @@ def main():
                 "title": f"1 {code} = {rate} CZK",
                 "subtitle": f"Rate: {rate} CZK",
                 "arg": rate,
-                "copy": rate,
-                "valid": "yes",
+                "valid": True,
                 "uid": code
             })
         elif mode == "convert":
@@ -242,8 +240,7 @@ def main():
                 "title": f"{amount_text} {code} = {converted_text} CZK",
                 "subtitle": f"Rate: {unit} {code} = {rate} CZK",
                 "arg": converted_text,
-                "copy": converted_text,
-                "valid": "yes",
+                "valid": True,
                 "uid": f"{amount_text}-{code}"
             })
         elif mode == "missing_currency":
