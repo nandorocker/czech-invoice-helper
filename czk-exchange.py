@@ -73,6 +73,22 @@ def get_date_str(date_input: Optional[str]) -> str:
     return datetime.today().strftime("%d.%m.%Y")
 
 
+def parse_date_strict(date_input: str) -> Optional[str]:
+    """Parse supported date formats without falling back to today."""
+    formats = ("%d.%m.%Y", "%d.%m.%y", "%m.%d.%y", "%m.%d.%Y", "%Y-%m-%d")
+    for date_format in formats:
+        try:
+            return datetime.strptime(date_input, date_format).strftime("%d.%m.%Y")
+        except ValueError:
+            continue
+    return None
+
+
+def looks_like_date(text: str) -> bool:
+    """Return true when text looks like a date token."""
+    return any(separator in text for separator in (".", "-")) and any(char.isdigit() for char in text)
+
+
 def fetch_exchange_rates(date_str: str) -> Optional[list[tuple[str, int, str]]]:
     """Fetch exchange rates from CNB for given date. Returns list of (code, amount, rate)."""
     params = urllib.parse.urlencode({"date": date_str})
@@ -125,6 +141,11 @@ def format_rate_title(code: str, amount: int, rate: str) -> str:
     return f"{amount} {code} = {rate} CZK"
 
 
+def format_rate_subtitle(code: str, amount: int, rate: str, date_str: str) -> str:
+    """Format an Alfred subtitle with date context."""
+    return f"Rate on {date_str}: {format_rate_title(code, amount, rate)}"
+
+
 def print_list(rates: list[tuple[str, int, str]]):
     """Print all currencies in simple format."""
     for code, amount, rate in sorted(rates):
@@ -154,22 +175,30 @@ def alfred_error(title: str, subtitle: str = "") -> None:
     print(json.dumps({"items": [item]}))
 
 
-def parse_alfred_query(query: Optional[str]) -> tuple[str, Optional[float], Optional[str]]:
-    """Return (mode, amount, currency) for an Alfred query."""
+def parse_alfred_query(query: Optional[str]) -> tuple[str, Optional[float], Optional[str], Optional[str]]:
+    """Return (mode, amount, currency, date_str) for an Alfred query."""
     tokens = (query or "").strip().split()
+    date_str = None
+
+    if tokens and looks_like_date(tokens[-1]):
+        date_str = parse_date_strict(tokens[-1])
+        if not date_str:
+            return "invalid_date", None, None, None
+        tokens = tokens[:-1]
+
     if not tokens:
-        return "list", None, None
+        return "list", None, None, date_str
     if len(tokens) == 1:
         amount = parse_amount(tokens[0])
         if amount is not None:
-            return "missing_currency", amount, None
-        return "rate", None, tokens[0]
+            return "missing_currency", amount, None, date_str
+        return "rate", None, tokens[0], date_str
     if len(tokens) == 2:
         amount = parse_amount(tokens[0])
         if amount is None:
-            return "invalid", None, None
-        return "convert", amount, tokens[1]
-    return "too_many", None, None
+            return "invalid", None, None, date_str
+        return "convert", amount, tokens[1], date_str
+    return "too_many", None, None, date_str
 
 
 def main():
@@ -195,20 +224,24 @@ def main():
     args = parser.parse_args()
 
     if args.alfred:
-        date_str = get_date_str(args.date)
+        mode, amount, currency, query_date = parse_alfred_query(args.alfred_query)
+        if mode == "invalid_date":
+            alfred_error("Invalid date", "Use e.g. 5.5.26 or 2026-05-05")
+            return
+
+        date_str = query_date or get_date_str(args.date)
         rates = fetch_exchange_rates(date_str)
         if not rates:
             print(json.dumps({"items": [{"title": "Error fetching rates", "valid": False}]}))
             return
 
-        mode, amount, currency = parse_alfred_query(args.alfred_query)
         items = []
 
         if mode == "list":
             for code, amount, rate in sorted(rates):
                 items.append({
                     "title": format_rate_title(code, amount, rate),
-                    "subtitle": f"Rate: {format_rate_title(code, amount, rate)}",
+                    "subtitle": format_rate_subtitle(code, amount, rate, date_str),
                     "arg": rate,
                     "valid": True,
                     "uid": code
@@ -222,7 +255,7 @@ def main():
             code, amount, rate = match
             items.append({
                 "title": format_rate_title(code, amount, rate),
-                "subtitle": f"Rate: {format_rate_title(code, amount, rate)}",
+                "subtitle": format_rate_subtitle(code, amount, rate, date_str),
                 "arg": rate,
                 "valid": True,
                 "uid": code
@@ -239,7 +272,7 @@ def main():
             amount_text = format_amount(amount or 0)
             items.append({
                 "title": f"{amount_text} {code} = {converted_text} CZK",
-                "subtitle": f"Rate: {format_rate_title(code, rate_amount, rate)}",
+                "subtitle": format_rate_subtitle(code, rate_amount, rate, date_str),
                 "arg": converted_text,
                 "valid": True,
                 "uid": f"{amount_text}-{code}"
