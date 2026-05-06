@@ -9,6 +9,8 @@ import sys
 import urllib.request
 import urllib.parse
 import urllib.error
+import json
+import math
 from datetime import datetime
 from typing import Optional
 import subprocess
@@ -51,12 +53,44 @@ def get_date_str(date_input: Optional[str]) -> str:
     try:
         return datetime.strptime(date_input, "%d.%m.%Y").strftime("%d.%m.%Y")
     except ValueError:
+        pass
+    try:
+        return datetime.strptime(date_input, "%d.%m.%y").strftime("%d.%m.%Y")
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(date_input, "%m.%d.%y").strftime("%d.%m.%Y")
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(date_input, "%m.%d.%Y").strftime("%d.%m.%Y")
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(date_input, "%Y-%m-%d").strftime("%d.%m.%Y")
+    except ValueError:
         print(f"Invalid date format '{date_input}'. Using today's date.")
-        return datetime.today().strftime("%d.%m.%Y")
+    return datetime.today().strftime("%d.%m.%Y")
 
 
-def fetch_exchange_rates(date_str: str) -> Optional[list[tuple[str, str]]]:
-    """Fetch exchange rates from CNB for given date. Returns list of (code, rate)."""
+def parse_date_strict(date_input: str) -> Optional[str]:
+    """Parse supported date formats without falling back to today."""
+    formats = ("%d.%m.%Y", "%d.%m.%y", "%m.%d.%y", "%m.%d.%Y", "%Y-%m-%d")
+    for date_format in formats:
+        try:
+            return datetime.strptime(date_input, date_format).strftime("%d.%m.%Y")
+        except ValueError:
+            continue
+    return None
+
+
+def looks_like_date(text: str) -> bool:
+    """Return true when text looks like a date token."""
+    return any(separator in text for separator in (".", "-")) and any(char.isdigit() for char in text)
+
+
+def fetch_exchange_rates(date_str: str) -> Optional[list[tuple[str, int, str]]]:
+    """Fetch exchange rates from CNB for given date. Returns list of (code, amount, rate)."""
     params = urllib.parse.urlencode({"date": date_str})
     url = f"{CNB_BASE_URL}?{params}"
 
@@ -65,13 +99,13 @@ def fetch_exchange_rates(date_str: str) -> Optional[list[tuple[str, str]]]:
         with urllib.request.urlopen(req, timeout=10) as response:
             content = response.read().decode("utf-8")
     except urllib.error.HTTPError as e:
-        print(f"HTTP error: {e.code} {e.reason}")
+        print(f"HTTP error: {e.code} {e.reason}", file=sys.stderr)
         return None
     except urllib.error.URLError as e:
-        print(f"Network error: {e.reason}")
+        print(f"Network error: {e.reason}", file=sys.stderr)
         return None
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}", file=sys.stderr)
         return None
 
     rates = []
@@ -81,34 +115,90 @@ def fetch_exchange_rates(date_str: str) -> Optional[list[tuple[str, str]]]:
         parts = line.strip().split("|")
         if len(parts) >= 5:
             code = parts[3].strip()
+            amount_text = parts[2].strip()
             rate = parts[4].strip()
-            if code and rate:
-                rates.append((code, rate))
+            if code and amount_text and rate:
+                try:
+                    amount = int(amount_text)
+                except ValueError:
+                    continue
+                rates.append((code, amount, rate))
 
     return rates if rates else None
 
 
-def find_currency(rates: list[tuple[str, str]], currency: str) -> Optional[str]:
-    """Find rate for given currency code."""
+def find_currency(rates: list[tuple[str, int, str]], currency: str) -> Optional[tuple[str, int, str]]:
+    """Find rate tuple for given currency code."""
     currency = currency.upper()
-    for code, rate in rates:
+    for code, amount, rate in rates:
         if code == currency:
-            return rate
+            return code, amount, rate
     return None
 
 
-def get_amount(rates: list[tuple[str, str]], currency: str) -> int:
-    """Get the amount unit for a currency (e.g., 1 for USD, 100 for HUF)."""
-    currency = currency.upper()
-    params = {"HUF": 100, "JPY": 100, "ISK": 100, "INR": 100, "IDR": 1000,
-             "PHP": 100, "KRW": 100, "THB": 100, "TRY": 100}
-    return params.get(currency, 1)
+def format_rate_title(code: str, amount: int, rate: str) -> str:
+    """Format a CNB rate using its published amount unit."""
+    return f"{amount} {code} = {rate} CZK"
 
 
-def print_list(rates: list[tuple[str, str]]):
+def format_rate_subtitle(code: str, amount: int, rate: str, date_str: str) -> str:
+    """Format an Alfred subtitle with date context."""
+    return f"Rate on {date_str}: {format_rate_title(code, amount, rate)}"
+
+
+def print_list(rates: list[tuple[str, int, str]]):
     """Print all currencies in simple format."""
-    for code, rate in sorted(rates):
+    for code, amount, rate in sorted(rates):
         print(f"{code} {rate}")
+
+
+def parse_amount(text: str) -> Optional[float]:
+    """Parse an amount with dot or comma decimal separator."""
+    try:
+        amount = float(text.replace(",", "."))
+    except ValueError:
+        return None
+    return amount if math.isfinite(amount) else None
+
+
+def format_amount(amount: float) -> str:
+    """Format user-entered amounts without unnecessary trailing zeroes."""
+    text = str(amount)
+    return text[:-2] if text.endswith(".0") else text
+
+
+def alfred_error(title: str, subtitle: str = "") -> None:
+    """Print a non-selectable Alfred error item."""
+    item = {"title": title, "valid": False}
+    if subtitle:
+        item["subtitle"] = subtitle
+    print(json.dumps({"items": [item]}))
+
+
+def parse_alfred_query(query: Optional[str]) -> tuple[str, Optional[float], Optional[str], Optional[str]]:
+    """Return (mode, amount, currency, date_str) for an Alfred query."""
+    tokens = (query or "").strip().split()
+    date_str = None
+
+    if tokens and looks_like_date(tokens[-1]):
+        date_str = parse_date_strict(tokens[-1])
+        if not date_str:
+            return "invalid_date", None, None, None
+        tokens = tokens[:-1]
+
+    if not tokens:
+        return "list", None, None, date_str
+    if len(tokens) == 1:
+        amount = parse_amount(tokens[0])
+        if amount is not None:
+            return "missing_currency", amount, None, date_str
+        return "rate", None, tokens[0], date_str
+    if len(tokens) == 2:
+        amount = parse_amount(tokens[0])
+        if amount is None:
+            return "invalid", None, None, date_str
+        return "convert", amount, tokens[1], date_str
+    return "too_many", None, None, date_str
 
 
 def main():
@@ -127,8 +217,86 @@ def main():
                       help="Output number only, no clipboard")
     parser.add_argument("--list", action="store_true",
                       help="List all available currencies with rates")
+    parser.add_argument("--alfred", action="store_true",
+                      help="Output JSON for Alfred Script Filter")
+    parser.add_argument("--alfred-query", help="Raw query passed by Alfred")
 
     args = parser.parse_args()
+
+    if args.alfred:
+        mode, amount, currency, query_date = parse_alfred_query(args.alfred_query)
+        if mode == "invalid_date":
+            alfred_error("Invalid date", "Use e.g. 5.5.26 or 2026-05-05")
+            return
+
+        if query_date:
+            date_str = query_date
+        elif args.date:
+            date_str = parse_date_strict(args.date)
+            if not date_str:
+                alfred_error("Invalid date", "Use e.g. 5.5.26 or 2026-05-05")
+                return
+        else:
+            date_str = get_date_str(None)
+        rates = fetch_exchange_rates(date_str)
+        if not rates:
+            print(json.dumps({"items": [{"title": "Error fetching rates", "valid": False}]}))
+            return
+
+        items = []
+
+        if mode == "list":
+            for code, amount, rate in sorted(rates):
+                items.append({
+                    "title": format_rate_title(code, amount, rate),
+                    "subtitle": format_rate_subtitle(code, amount, rate, date_str),
+                    "arg": rate,
+                    "valid": True,
+                    "uid": code
+                })
+        elif mode == "rate":
+            match = find_currency(rates, currency or "")
+            if not match:
+                available = ", ".join(c for c, _, _ in rates)
+                alfred_error(f"Currency {currency} not found", f"Available: {available}")
+                return
+            code, amount, rate = match
+            items.append({
+                "title": format_rate_title(code, amount, rate),
+                "subtitle": format_rate_subtitle(code, amount, rate, date_str),
+                "arg": rate,
+                "valid": True,
+                "uid": code
+            })
+        elif mode == "convert":
+            match = find_currency(rates, currency or "")
+            if not match:
+                available = ", ".join(c for c, _, _ in rates)
+                alfred_error(f"Currency {currency} not found", f"Available: {available}")
+                return
+            code, rate_amount, rate = match
+            converted = (amount or 0) * float(rate) / rate_amount
+            converted_text = f"{converted:.2f}"
+            amount_text = format_amount(amount or 0)
+            items.append({
+                "title": f"{amount_text} {code} = {converted_text} CZK",
+                "subtitle": format_rate_subtitle(code, rate_amount, rate, date_str),
+                "arg": converted_text,
+                "valid": True,
+                "uid": f"{amount_text}-{code}"
+            })
+        elif mode == "missing_currency":
+            alfred_error("Enter amount and currency, e.g. 50 EUR")
+            return
+        elif mode == "too_many":
+            alfred_error("Too many arguments", "Use e.g. 50 EUR")
+            return
+        else:
+            alfred_error("Invalid input", "Use a currency code or amount and currency")
+            return
+
+        print(json.dumps({"items": items}))
+        return
 
     if args.list:
         date_str = get_date_str(args.date)
@@ -150,18 +318,18 @@ def main():
                 print("Failed to fetch exchange rates.", file=sys.stderr)
                 sys.exit(1)
 
-            rate = find_currency(rates, currency)
-            if not rate:
-                available = ", ".join(c for c, _ in rates)
+            match = find_currency(rates, currency)
+            if not match:
+                available = ", ".join(c for c, _, _ in rates)
                 print(f"Currency '{currency}' not found. Available: {available}",
                       file=sys.stderr)
                 sys.exit(1)
+            code, amount, rate = match
 
             if args.quiet:
                 print(rate)
             else:
-                amount = get_amount(rates, currency)
-                print(f"1 {currency.upper()} = {rate} CZK")
+                print(format_rate_title(code, amount, rate))
                 if copy_to_clipboard(rate):
                     print("Rate copied to clipboard.")
 
@@ -179,20 +347,20 @@ def main():
         print("Failed to fetch exchange rates.", file=sys.stderr)
         sys.exit(1)
 
-    print("Available currencies:", ", ".join(c for c, _ in sorted(rates)))
+    print("Available currencies:", ", ".join(c for c, _, _ in sorted(rates)))
 
     currency = input("Enter currency code (e.g., USD): ").strip().upper()
     if not currency:
         print("No currency entered.")
         return
 
-    rate = find_currency(rates, currency)
-    if not rate:
+    match = find_currency(rates, currency)
+    if not match:
         print(f"Currency '{currency}' not found.")
         return
 
-    amount = get_amount(rates, currency)
-    print(f"\n1 {currency.upper()} = {rate} CZK")
+    code, amount, rate = match
+    print(f"\n{format_rate_title(code, amount, rate)}")
 
     if copy_to_clipboard(rate):
         print("Rate copied to clipboard.")
