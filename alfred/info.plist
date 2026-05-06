@@ -35,12 +35,39 @@
 		<dict>
 			<key>config</key>
 			<dict>
+				<key>autopaste</key>
+				<false/>
+				<key>clipboardtext</key>
+				<string>{query}</string>
+				<key>ignoredynamicplaceholders</key>
+				<false/>
+				<key>transient</key>
+				<false/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.output.clipboard</string>
+			<key>uid</key>
+			<string>COPY-RESULT</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<false/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
 				<key>argumenttype</key>
 				<integer>1</integer>
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>keyword</key>
-				<string>toczk</string>
+				<string>czk</string>
 				<key>queuedelaycustom</key>
 				<integer>1</integer>
 				<key>queuedelayimmediatelyinitially</key>
@@ -71,25 +98,6 @@
 			<key>uid</key>
 			<string>SCRIPT-FILTER</string>
 			<key>version</key>
-			<integer>2</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
-				<key>autopaste</key>
-				<false/>
-				<key>clipboardtext</key>
-				<string>{query}</string>
-				<key>ignoredynamicplaceholders</key>
-				<false/>
-				<key>transient</key>
-				<false/>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.output.clipboard</string>
-			<key>uid</key>
-			<string>COPY-RESULT</string>
-			<key>version</key>
 			<integer>3</integer>
 		</dict>
 	</array>
@@ -97,17 +105,17 @@
 	<string></string>
 	<key>uidata</key>
 	<dict>
-		<key>SCRIPT-FILTER</key>
-		<dict>
-			<key>xpos</key>
-			<real>220</real>
-			<key>ypos</key>
-			<real>150</real>
-		</dict>
 		<key>COPY-RESULT</key>
 		<dict>
 			<key>xpos</key>
 			<real>420</real>
+			<key>ypos</key>
+			<real>150</real>
+		</dict>
+		<key>SCRIPT-FILTER</key>
+		<dict>
+			<key>xpos</key>
+			<real>220</real>
 			<key>ypos</key>
 			<real>150</real>
 		</dict>

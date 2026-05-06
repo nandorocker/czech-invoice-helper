@@ -229,7 +229,15 @@ def main():
             alfred_error("Invalid date", "Use e.g. 5.5.26 or 2026-05-05")
             return
 
-        date_str = query_date or get_date_str(args.date)
+        if query_date:
+            date_str = query_date
+        elif args.date:
+            date_str = parse_date_strict(args.date)
+            if not date_str:
+                alfred_error("Invalid date", "Use e.g. 5.5.26 or 2026-05-05")
+                return
+        else:
+            date_str = get_date_str(None)
         rates = fetch_exchange_rates(date_str)
         if not rates:
             print(json.dumps({"items": [{"title": "Error fetching rates", "valid": False}]}))
